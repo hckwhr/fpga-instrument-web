@@ -14,6 +14,34 @@ const status = $("#status");
 const diagnostics = $("#diagnostics");
 const roll = $("#piano-roll");
 const transport = new Transport();
+for (const button of document.querySelectorAll('[data-file]')) {
+  button.addEventListener('click', () => document.getElementById(button.dataset.file).click());
+}
+function selectSource(kind) {
+  for (const source of ['audio', 'midi']) {
+    const selected = source === kind;
+    $(`#tab-${source}`).setAttribute('aria-selected', String(selected));
+    $(`#tab-${source}`).tabIndex = selected ? 0 : -1;
+    $(`#${source}-pane`).hidden = !selected;
+  }
+}
+for (const kind of ['audio', 'midi']) {
+  $(`#tab-${kind}`).addEventListener('click', () => selectSource(kind));
+  $(`#tab-${kind}`).addEventListener('keydown', event => {
+    if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+      event.preventDefault();
+      const next = event.key === 'Home' ? 'audio' : event.key === 'End' ? 'midi' : kind === 'audio' ? 'midi' : 'audio';
+      if ($(`#tab-${next}`).disabled) return;
+      selectSource(next); $(`#tab-${next}`).focus();
+    }
+  });
+}
+$('#connection-state').addEventListener('click', () => {
+  $('#device-panel').open = true;
+  $('#device-panel').scrollIntoView({ block: 'start' });
+  $('#device-panel > summary').focus({ preventScroll: true });
+});
+$('#device-panel').addEventListener('toggle', () => $('#connection-state').setAttribute('aria-expanded', String($('#device-panel').open)));
 const serialSupported = !!navigator.serial && window.isSecureContext;
 const logEntries = [];
 function logLink(direction, text) {
@@ -67,7 +95,7 @@ function loadProject(project, fileName, message) {
   preview.stop();
   state.project = project;
   state.selectedTracks = project.tracks.map((_, index) => index).filter((index) => project.tracks[index].notes.length);
-  $("#song-title").textContent = project.title;
+  $("#song-title").textContent = project.format === 'audio-transcription' ? `${project.partial ? '前 30 秒' : '全段'}音频识别结果 · 请对比试听` : project.title;
   $("#file-name").textContent = fileName;
   renderTracks();
   compileAndRender();
@@ -127,31 +155,43 @@ function renderDiagnostics(events) {
 
 function drawRoll(events) {
   const context = roll.getContext("2d");
-  const width = roll.width = roll.clientWidth * devicePixelRatio;
-  const height = roll.height = roll.clientHeight * devicePixelRatio;
+  roll.width = roll.clientWidth * devicePixelRatio;
+  roll.height = roll.clientHeight * devicePixelRatio;
   context.scale(devicePixelRatio, devicePixelRatio);
   const viewWidth = roll.clientWidth;
   const viewHeight = roll.clientHeight;
-  context.fillStyle = "#101827";
+  $('#roll-empty').hidden = events.length > 0;
+  context.fillStyle = "#faf7f0";
   context.fillRect(0, 0, viewWidth, viewHeight);
-  if (!events.length) return;
-  const minNote = Math.max(0, events.reduce((min, event) => Math.min(min, event.note), 127) - 2);
-  const maxNote = Math.min(127, events.reduce((max, event) => Math.max(max, event.note), 0) + 2);
-  const duration = Math.max(1, analyzeEvents(events).durationMs);
-  const rowHeight = Math.max(4, viewHeight / (maxNote - minNote + 1));
+  const minNote = events.length ? Math.max(0, events.reduce((min, event) => Math.min(min, event.note), 127) - 2) : 60;
+  const maxNote = events.length ? Math.min(127, events.reduce((max, event) => Math.max(max, event.note), 0) + 2) : 72;
+  const duration = Math.max(1000, analyzeEvents(events).durationMs);
+  const gutter = 38, top = 24, plotWidth = viewWidth - gutter;
+  const rowHeight = (viewHeight - top) / (maxNote - minNote + 1);
+  context.font = '10px Consolas, monospace';
   for (let note = minNote; note <= maxNote; note += 1) {
-    if (note % 2 === 0) { context.fillStyle = "#162235"; context.fillRect(0, (maxNote - note) * rowHeight, viewWidth, rowHeight); }
+    const y = top + (maxNote - note) * rowHeight;
+    const black = [1, 3, 6, 8, 10].includes(note % 12);
+    context.fillStyle = black ? '#f0e9de' : '#faf7f0';
+    context.fillRect(gutter, y, plotWidth, rowHeight);
+    context.fillStyle = black ? '#d6c8b6' : '#fffdf9';
+    context.fillRect(0, y, gutter - 1, rowHeight - 0.5);
+    if (rowHeight >= 13 || note % 12 === 0) {
+      context.fillStyle = '#665747'; context.fillText(midiNoteName(note), 5, y + rowHeight / 2 + 3);
+    }
+  }
+  for (let i = 0; i <= 4; i++) {
+    const x = gutter + plotWidth * i / 4;
+    context.fillStyle = '#ded3c3'; context.fillRect(Math.floor(x), top, 0.7, viewHeight - top);
+    if (i < 4 && events.length) { context.fillStyle = '#6b5e54'; context.fillText(`${(duration * i / 4000).toFixed(1)}s`, x + 5, 15); }
   }
   for (const event of events) {
-    const x = (event.startMs / duration) * viewWidth;
-    const widthPx = Math.max(2, (event.durationMs / duration) * viewWidth);
-    const y = (maxNote - event.note) * rowHeight;
-    context.fillStyle = `hsl(${(event.note * 7) % 360} 78% 62%)`;
-    context.fillRect(x, y + 1, widthPx, Math.max(2, rowHeight - 2));
+    const x = gutter + (event.startMs / duration) * plotWidth;
+    const widthPx = Math.max(2, (event.durationMs / duration) * plotWidth);
+    const y = top + (maxNote - event.note) * rowHeight;
+    context.fillStyle = '#a66c47';
+    context.fillRect(x, y + 1, widthPx, Math.max(1, rowHeight - 2));
   }
-  context.fillStyle = "#94a3b8";
-  context.font = "12px system-ui";
-  context.fillText(`${midiNoteName(minNote)} — ${midiNoteName(maxNote)}`, 12, viewHeight - 10);
 }
 
 function compileAndRender() {
@@ -200,7 +240,9 @@ $("#transcribe-audio").addEventListener("click", async () => {
   preview.stop(); $("#source-audio").pause();
   state.project = null; state.selectedTracks = []; trackList.replaceChildren(); compileAndRender();
   $("#file-name").textContent = '正在转谱'; $("#song-title").textContent = file.name;
-  for (const id of ['#audio-file', '#midi-file', '#audio-scope', '#audio-threshold', '#audio-min-note']) $(id).disabled = true;
+  for (const id of ['#audio-file', '#midi-file', '#choose-audio', '#choose-midi', '#tab-audio', '#tab-midi', '#audio-scope', '#audio-threshold', '#audio-min-note']) $(id).disabled = true;
+  $('#transcription-progress').hidden = false;
+  $('#transcription-progress').value = 0;
   $("#transcribe-audio").disabled = true;
   $("#cancel-transcription").disabled = false;
   try {
@@ -209,7 +251,7 @@ $("#transcribe-audio").addEventListener("click", async () => {
       durationLimit: Number($('#audio-scope').value),
       threshold: Number($('#audio-threshold').value),
       minNoteMs: Number($('#audio-min-note').value),
-      onProgress: ({ stage, percent }) => { $("#audio-progress").textContent = `${{ decode: '解码音频', load: '加载本地转谱模型', model: '识别音符' }[stage]}：${Math.round(percent * 100)}%`; },
+      onProgress: ({ stage, percent }) => { $("#audio-progress").textContent = `${{ decode: '解码音频', load: '加载本地转谱模型', model: '识别音符' }[stage]}：${Math.round(percent * 100)}%`; $('#transcription-progress').value = percent * 100; },
     });
     loadProject(project, file.name, project.tracks[0].notes.length ? '转谱完成，请对比原音频和音符试听；浏览器音色不代表 FPGA 实际音色。' : '未识别到音符，可降低识别门槛或更换旋律清晰的音频。');
     $("#audio-progress").textContent = `${project.partial ? '前 30 秒' : '全段'}识别完成：${project.tracks[0].notes.length} 个音符。`;
@@ -217,9 +259,11 @@ $("#transcribe-audio").addEventListener("click", async () => {
     setStatus(error.name === "AbortError" ? "已取消音频转谱。" : `音频转谱失败：${error.message}`, error.name === "AbortError" ? "info" : "error");
     $("#audio-progress").textContent = error.name === "AbortError" ? "已取消。" : error.message;
     $('#file-name').textContent = '尚无转谱结果';
+    $('#song-title').textContent = '调整设置后，可以重新开始。';
   } finally {
     state.transcription = null;
-    for (const id of ['#audio-file', '#midi-file', '#audio-scope', '#audio-threshold', '#audio-min-note']) $(id).disabled = false;
+    for (const id of ['#audio-file', '#midi-file', '#choose-audio', '#choose-midi', '#tab-audio', '#tab-midi', '#audio-scope', '#audio-threshold', '#audio-min-note']) $(id).disabled = false;
+    $('#transcription-progress').hidden = true;
     $("#transcribe-audio").disabled = !state.audioFile;
     $("#cancel-transcription").disabled = true;
   }
