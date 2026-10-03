@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FPGA 乐器 · 曲谱工作台</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">FPGA INSTRUMENT / SONG WORKSTATION</p>
+          <h1>曲谱工作台</h1>
+          <p class="subtitle">把 MIDI 音符转换成 FPGA 可以按采样时间轴演奏的事件。</p>
+        </div>
+        <div class="connection" id="connection-state"><span class="dot"></span><span id="connection-label">未连接硬件</span><small>串口连接与板端就绪分别确认</small></div>
+      </header>
+
+      <section class="panel bluetooth-panel" aria-labelledby="bluetooth-title">
+        <div class="panel-heading"><h2 id="bluetooth-title">蓝牙与串口</h2><span class="tag">HC-05 · 电脑端</span></div>
+        <p id="serial-help" class="hint">先在电脑系统设置配对 HC-05，再选择其串口。使用电脑 Chrome / Edge；USB 串口也可连接。</p>
+        <div class="connection-controls">
+          <label>波特率 <select id="baud-rate"><option>9600</option><option>19200</option><option>38400</option><option>57600</option><option>115200</option></select></label>
+          <button id="connect" class="button primary">连接 HC-05 / 串口</button>
+          <button id="disconnect" class="button" disabled>断开</button>
+        </div>
+        <p id="link-status" role="status">未连接。波特率应与模块和板端 UART 配置一致。</p>
+        <details>
+          <summary>通信测试</summary>
+          <p class="hint">仅测试文本收发。现有 FPGA 固件尚不接收歌曲；没有板端回执就不能确认已执行。</p>
+          <form id="send-form" class="connection-controls">
+            <label class="test-input">测试文本 <input id="send-text" value="PING" maxlength="256" autocomplete="off"></label>
+            <label><input type="checkbox" id="send-newline" checked> 追加换行</label>
+            <button id="send" class="button" disabled>发送测试</button>
+            <button id="clear-log" type="button" class="button ghost">清空记录</button>
+          </form>
+          <pre id="serial-log" aria-label="串口收发记录" tabindex="0">尚无收发记录。</pre>
+        </details>
+      </section>
+
+      <section class="grid">
+        <section class="panel import-panel">
+          <div class="panel-heading"><div><span class="step">01</span><h2>导入曲谱</h2></div><label class="button primary" for="midi-file">选择 MIDI</label><input id="midi-file" type="file" accept=".mid,.midi,audio/midi"></div>
+          <div class="file-card"><span class="file-icon">♫</span><div><strong id="file-name">尚未选择文件</strong><span id="song-title">支持 Standard MIDI File 0 / 1</span></div></div>
+          <div class="track-actions"><h3>选择演奏音轨</h3><div><button id="select-all" class="button small">全选</button><button id="clear-all" class="button small ghost">清空</button></div></div>
+          <div id="track-list" class="track-list"><p class="empty">导入 MIDI 后显示轨道。</p></div>
+        </section>
+
+        <section class="panel settings-panel">
+          <div class="panel-heading"><div><span class="step">02</span><h2>转换设置</h2></div><span class="tag">FPGA 事件</span></div>
+          <label class="range-row"><span>演奏速度 <output id="speed-value">100%</output></span><input id="speed" type="range" min="50" max="150" value="100"></label>
+          <label class="range-row"><span>整体力度 <output id="velocity-value">100%</output></span><input id="velocity" type="range" min="25" max="125" value="100"></label>
+          <div class="stats"><div><strong id="note-count">0</strong><span>事件</span></div><div><strong id="duration">0:00</strong><span>时长</span></div><div><strong id="polyphony">0 / 32</strong><span>峰值复音</span></div></div>
+          <div id="diagnostics" class="diagnostics"><p class="hint">导入曲谱后进行容量和兼容性检查。</p></div>
+          <div class="exports"><button id="export-csv" class="button primary">导出 CSV</button><button id="export-jsonl" class="button">导出 JSONL</button><button id="export-protocol" class="button ghost">协议预览</button></div>
+        </section>
+      </section>
+
+      <section class="panel roll-panel"><div class="panel-heading"><div><span class="step">03</span><h2>钢琴卷帘预览</h2></div><span class="hint">横轴时间 · 纵轴音高</span></div><canvas id="piano-roll" aria-label="MIDI 钢琴卷帘预览"></canvas></section>
+      <section class="status-bar" id="status" role="status"></section>
+      <footer><span>MIDI 转换 · HC-05 串口通信</span><span>整曲上传等待板端接收协议接入</span></footer>
+    </main>
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
