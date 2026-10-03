@@ -13,6 +13,22 @@ const trackList = $("#track-list");
 const status = $("#status");
 const diagnostics = $("#diagnostics");
 const roll = $("#piano-roll");
+const themeToggle = $('#theme-toggle');
+function renderThemeToggle() {
+  const dark = document.documentElement.dataset.theme === 'dark';
+  themeToggle.setAttribute('aria-pressed', String(dark));
+  themeToggle.lastElementChild.textContent = dark ? '夜间模式' : '白天模式';
+  themeToggle.title = dark ? '切换到白天模式' : '切换到夜间模式';
+}
+renderThemeToggle();
+themeToggle.onclick = () => {
+  const theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = theme;
+  document.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#211e1b' : '#f5f1e9';
+  try { localStorage.setItem('instrument-theme', theme); } catch { /* Switching still works without persistence. */ }
+  renderThemeToggle();
+  drawRoll(state.events);
+};
 const transport = new Transport();
 for (const button of document.querySelectorAll('[data-file]')) {
   button.addEventListener('click', () => document.getElementById(button.dataset.file).click());
@@ -155,13 +171,15 @@ function renderDiagnostics(events) {
 
 function drawRoll(events) {
   const context = roll.getContext("2d");
+  const palette = getComputedStyle(document.documentElement);
+  const color = name => palette.getPropertyValue(`--${name}`).trim();
   roll.width = roll.clientWidth * devicePixelRatio;
   roll.height = roll.clientHeight * devicePixelRatio;
   context.scale(devicePixelRatio, devicePixelRatio);
   const viewWidth = roll.clientWidth;
   const viewHeight = roll.clientHeight;
   $('#roll-empty').hidden = events.length > 0;
-  context.fillStyle = "#faf7f0";
+  context.fillStyle = color('roll-bg');
   context.fillRect(0, 0, viewWidth, viewHeight);
   const minNote = events.length ? Math.max(0, events.reduce((min, event) => Math.min(min, event.note), 127) - 2) : 60;
   const maxNote = events.length ? Math.min(127, events.reduce((max, event) => Math.max(max, event.note), 0) + 2) : 72;
@@ -172,24 +190,24 @@ function drawRoll(events) {
   for (let note = minNote; note <= maxNote; note += 1) {
     const y = top + (maxNote - note) * rowHeight;
     const black = [1, 3, 6, 8, 10].includes(note % 12);
-    context.fillStyle = black ? '#f0e9de' : '#faf7f0';
+    context.fillStyle = color(black ? 'roll-row' : 'roll-bg');
     context.fillRect(gutter, y, plotWidth, rowHeight);
-    context.fillStyle = black ? '#d6c8b6' : '#fffdf9';
+    context.fillStyle = color(black ? 'roll-key' : 'paper');
     context.fillRect(0, y, gutter - 1, rowHeight - 0.5);
     if (rowHeight >= 13 || note % 12 === 0) {
-      context.fillStyle = '#665747'; context.fillText(midiNoteName(note), 5, y + rowHeight / 2 + 3);
+      context.fillStyle = color('text'); context.fillText(midiNoteName(note), 5, y + rowHeight / 2 + 3);
     }
   }
   for (let i = 0; i <= 4; i++) {
     const x = gutter + plotWidth * i / 4;
-    context.fillStyle = '#ded3c3'; context.fillRect(Math.floor(x), top, 0.7, viewHeight - top);
-    if (i < 4 && events.length) { context.fillStyle = '#6b5e54'; context.fillText(`${(duration * i / 4000).toFixed(1)}s`, x + 5, 15); }
+    context.fillStyle = color('line'); context.fillRect(Math.floor(x), top, 0.7, viewHeight - top);
+    if (i < 4 && events.length) { context.fillStyle = color('muted'); context.fillText(`${(duration * i / 4000).toFixed(1)}s`, x + 5, 15); }
   }
   for (const event of events) {
     const x = gutter + (event.startMs / duration) * plotWidth;
     const widthPx = Math.max(2, (event.durationMs / duration) * plotWidth);
     const y = top + (maxNote - event.note) * rowHeight;
-    context.fillStyle = '#a66c47';
+    context.fillStyle = color('roll-note');
     context.fillRect(x, y + 1, widthPx, Math.max(1, rowHeight - 2));
   }
 }

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f5f1e9">
   <title>FPGA 乐器 · 曲谱工作台</title>
+  <script src="./src/theme.js"></script>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
@@ -12,7 +13,10 @@
   <main class="shell" id="workspace">
     <header class="site-header">
       <a class="brand" href="./"><span class="brand-mark" aria-hidden="true">♫</span><span>曲谱工作台<small>FPGA 乐器</small></span></a>
-      <button class="connection" id="connection-state" aria-controls="device-panel" aria-expanded="false"><span class="dot" aria-hidden="true"></span><span id="connection-label">未连接硬件</span><span aria-hidden="true">›</span></button>
+      <div class="header-actions">
+        <button class="button theme-toggle" id="theme-toggle" type="button" aria-label="夜间模式" aria-pressed="false"><span class="theme-icon" aria-hidden="true"></span><span>夜间模式</span></button>
+        <button class="connection" id="connection-state" aria-controls="device-panel" aria-expanded="false"><span class="dot" aria-hidden="true"></span><span id="connection-label">未连接硬件</span><span aria-hidden="true">›</span></button>
+      </div>
     </header>
     <div class="intro"><div><h1>从一段音乐开始。</h1><p>导入音频，听听识别出的旋律，再准备给乐器演奏。</p></div><span class="local-note">音频仅在本机处理</span></div>
 
