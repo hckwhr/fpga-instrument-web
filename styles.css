@@ -17,6 +17,14 @@ input[type=file] { display: none; }.button { border: 1px solid #3a4d6e; color: #
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }.stats div { border-top: 1px solid #2b3c57; padding-top: 10px; }.stats strong, .stats span { display: block; }.stats strong { font-size: 18px; color: #f4b860; }.stats span { color: #7f8da3; font-size: 10px; margin-top: 4px; }.diagnostics { min-height: 44px; margin: 18px 0; }.diagnostics p { font-size: 11px; line-height: 1.5; }.warning { color: #f6c979; }.exports { display: flex; flex-wrap: wrap; gap: 7px; }
 .roll-panel { margin-top: 18px; }.roll-panel .hint { margin: 0; }.roll-panel canvas { width: 100%; height: 240px; display: block; border-radius: 10px; margin-top: 16px; }.status-bar { margin-top: 18px; border-radius: 10px; padding: 12px 14px; background: #111c30; color: #93a4bc; font-size: 12px; }.status-bar[data-kind=ok] { color: #6ee7d8; }.status-bar[data-kind=error] { color: #ff9b9b; }footer { display: flex; justify-content: space-between; margin-top: 18px; color: #65748a; font-size: 10px; }
 .bluetooth-panel { margin-bottom: 18px; }
+.audio-panel { margin-bottom: 18px; }
+.audio-controls { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:14px; }
+.audio-controls label { font-size:12px; }
+input:disabled + label, label:has(+ input:disabled) { opacity:.5; cursor:wait; }
+.audio-file-row strong, .file-card strong { overflow-wrap:anywhere; }
+.audio-file-row { display:flex; flex-wrap:wrap; gap:12px; margin-top:12px; color:#cbd5e1; font-size:12px; }
+.audio-file-row span { color:#7f8da3; }
+#source-audio { width:100%; margin-top:14px; }
 .connection-controls { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:14px 0; font-size:13px; }
 .connection-controls input:not([type=checkbox]), select { background:#101827; color:#e7edf7; border:1px solid #526581; border-radius:6px; padding:9px; font:inherit; }
 .test-input { flex:1; min-width:180px; }.test-input input { width:100%; margin-top:6px; }

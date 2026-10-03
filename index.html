@@ -12,7 +12,7 @@
         <div>
           <p class="eyebrow">FPGA INSTRUMENT / SONG WORKSTATION</p>
           <h1>曲谱工作台</h1>
-          <p class="subtitle">把 MIDI 音符转换成 FPGA 可以按采样时间轴演奏的事件。</p>
+          <p class="subtitle">把 MIDI 或本地音频转换成 FPGA 可以按采样时间轴演奏的事件。</p>
         </div>
         <div class="connection" id="connection-state"><span class="dot"></span><span id="connection-label">未连接硬件</span><small>串口连接与板端就绪分别确认</small></div>
       </header>
@@ -39,6 +39,23 @@
         </details>
       </section>
 
+      <section class="panel audio-panel" aria-labelledby="audio-title">
+        <div class="panel-heading"><div><span class="step">AUDIO</span><h2 id="audio-title">MP3 / 音频转谱</h2></div><span class="tag">浏览器本地处理</span></div>
+        <p class="hint">适合钢琴独奏和旋律清晰的纯音乐。音频不会上传；复杂伴奏、鼓点和混响可能产生误识别。</p>
+        <div class="audio-controls">
+          <label class="button primary" for="audio-file">选择 MP3 / WAV / FLAC</label>
+          <input id="audio-file" type="file" accept="audio/*,.mp3,.wav,.flac,.m4a,.ogg">
+          <label>转换范围 <select id="audio-scope"><option value="30">先试前 30 秒</option><option value="0">整首（最多 10 分钟）</option></select></label>
+          <label>识别门槛 <select id="audio-threshold"><option value="0.35">标准</option><option value="0.5">较高 · 减少杂音符</option><option value="0.2">较低 · 捕捉轻音</option></select></label>
+          <label>最短音符 <select id="audio-min-note"><option value="120">120 ms · 标准</option><option value="80">80 ms · 快速旋律</option><option value="180">180 ms · 减少碎音</option></select></label>
+          <button id="transcribe-audio" class="button" disabled>开始转谱</button>
+          <button id="cancel-transcription" class="button ghost" disabled>取消</button>
+        </div>
+        <div class="audio-file-row"><strong id="audio-file-name">尚未选择音频</strong><span id="audio-progress">转谱结果会进入下方钢琴卷帘和导出流程。</span></div>
+        <audio id="source-audio" controls preload="metadata" hidden></audio>
+        <p class="hint">支持格式取决于浏览器解码能力；不支持 NCM 专属格式或 LRC 歌词。上限 80 MB；前 30 秒模式仍需先解码整个文件。</p>
+      </section>
+
       <section class="grid">
         <section class="panel import-panel">
           <div class="panel-heading"><div><span class="step">01</span><h2>导入曲谱</h2></div><label class="button primary" for="midi-file">选择 MIDI</label><input id="midi-file" type="file" accept=".mid,.midi,audio/midi"></div>
@@ -57,9 +74,9 @@
         </section>
       </section>
 
-      <section class="panel roll-panel"><div class="panel-heading"><div><span class="step">03</span><h2>钢琴卷帘预览</h2></div><span class="hint">横轴时间 · 纵轴音高</span></div><canvas id="piano-roll" aria-label="MIDI 钢琴卷帘预览"></canvas></section>
+      <section class="panel roll-panel"><div class="panel-heading"><div><span class="step">03</span><h2>钢琴卷帘预览</h2></div><span class="hint">横轴时间 · 纵轴音高</span></div><div class="audio-controls"><button id="preview-notes" class="button primary" disabled>试听识别音符</button><button id="stop-preview" class="button" disabled>停止试听</button><span class="hint">用于核对音高与节奏；此处音色不是 FPGA 实际音色。</span></div><canvas id="piano-roll" aria-label="曲谱钢琴卷帘预览"></canvas></section>
       <section class="status-bar" id="status" role="status"></section>
-      <footer><span>MIDI 转换 · HC-05 串口通信</span><span>整曲上传等待板端接收协议接入</span></footer>
+      <footer><span>音频转谱 · MIDI 转换 · HC-05 串口通信</span><span>整曲上传等待板端接收协议接入</span></footer>
     </main>
     <script type="module" src="./src/app.js"></script>
   </body>
